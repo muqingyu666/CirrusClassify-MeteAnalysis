@@ -1,0 +1,14 @@
+numpy
+pandas
+xarray
+matplotlib
+cartopy
+seaborn
+scipy
+joblib
+pyhdf
+metpy
+scikit-learn
+contextily
+h5netcdf
+pyarrow

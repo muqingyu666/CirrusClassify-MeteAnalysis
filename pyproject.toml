@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cirrusclassify"
+version = "0.1.0"
+description = "Research toolkit for CloudSat-based cirrus classification and analysis"
+readme = "README.md"
+authors = [
+  { name = "Qingyu Mu" },
+  { name = "Contributors" },
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+keywords = ["CloudSat", "cirrus", "remote sensing", "atmosphere"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+dependencies = [
+  "numpy",
+  "pandas",
+  "xarray",
+  "matplotlib",
+  "cartopy",
+  "seaborn",
+  "scipy",
+  "joblib",
+  "pyhdf",
+  "metpy",
+  "scikit-learn",
+  "contextily",
+  "h5netcdf",
+  "pyarrow",
+]
+
+[project.optional-dependencies]
+develop = [
+  "black",
+  "ruff",
+  "pytest",
+  "pytest-cov",
+  "pre-commit",
+]
+
+docs = [
+  "sphinx",
+  "myst-parser",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "B", "UP", "ANN"]
+ignore = ["ANN101", "ANN102"]
+
+[tool.coverage.run]
+source = ["cirrusclassify"]
+branch = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

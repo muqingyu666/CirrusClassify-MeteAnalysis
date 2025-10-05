@@ -1,0 +1,29 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+
+# Packaging
+*.egg-info/
+.dist/
+build/
+dist/
+
+# Virtual environments
+.venv/
+.env/
+venv/
+
+# Editors
+.vscode/
+.idea/
+
+# Data & notebooks
+notebooks/.ipynb_checkpoints/
+data/
+*.hdf
+*.nc
+
+# Logs
+*.log

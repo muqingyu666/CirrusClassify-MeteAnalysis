@@ -1,103 +1,116 @@
 # CirrusClassify-MeteAnalysis
 
-CirrusClassify-MeteAnalysis is a script-driven toolkit for processing CloudSat observations with a focus on separating anvil and in-situ cirrus, extracting microphysical properties, aggregating statistics, and producing diagnostic visualisations. The code base covers raw HDF ingestion, connected-component labelling, large-scale parallel processing, fusion with ECMWF/MODIS auxiliary data, and downstream statistical or machine-learning analyses.
+**CirrusClassify-MeteAnalysis** is a research-grade Python package for analysing CloudSat observations, isolating anvil versus in-situ cirrus, and producing downstream diagnostics such as climatologies, microphysical statistics, and machine-learning ready features. The project now follows a modern `src/` layout with reusable modules, configuration-driven pipelines, documentation, and automated testing hooks.
 
-## 🔁 Overview & end-to-end pipeline
+## 🧱 Project structure
 
-1. **Ingestion** – `muqy_20240101_2Bgeoprof_reader.py` exposes a unified reader for CloudSat R05 2B HDF files, automatically handling Vdata/SDS scaling and masking.
-2. **Per-track QC plots** – `muqy_20240101_plot_2Bgeoprof_test.py` and `muqy_20240102_plot_2Bcldtype_2Bcldfrac_2Cice.py` provide longitudinal cross-section plots and orbit tracks for CLDCLASS-LIDAR, 2C-ICE, and 2B-GEOPROF products.
-3. **Cirrus classification pipeline** – `muqy_20240104_filter_anvil_insitu_cirrus.py` implements `CloudSatProcessor_Ver2`, combining connected-component labelling, morphological dilation, and IWC/temperature constraints to distinguish **anvil cirrus** from **in-situ cirrus**, with helper plotting utilities.
-4. **Batch parallel processing** – `muqy_20240611_apply_filter_cld_parallel_with_ice_modified.py` orchestrates multi-process classification for large collections of CloudSat granules and writes compressed NetCDF outputs containing masks, microphysics, and ECMWF auxiliaries.
-5. **Post-processing & reanalysis** – follow-on scripts include:
-	 - `muqy_20240619_filter_high_AOD_cirrus_zone.py`: masks cirrus scenes in regions with elevated aerosol optical depth (AOD).
-	 - `muqy_20240621_calc_monthly_cirrus_class_micro.py`: aggregates masks and microphysics into monthly gridded means.
-	 - `muqy_20240625_calc_aux_trop_vars_from_ogdata_og.py`: derives tropospheric metrics (tropopause height, static stability, relative humidity, etc.).
-	 - `muqy_20240909_calc_height_weighted_cirrus_mask.py`: projects 3-D masks into height-weighted 2-D occurrence fields.
-	 - `muqy_20240910_generate_Cirrus_inc_prof_EC_AUX_vars_mean_parallel.py`: bins cirrus occurrence and profiles by ECMWF auxiliary-variable deciles.
-6. **Statistical analysis & visualisation** – scripts such as `muqy_20240923_analyze_cirrus_class_freq_micro.py`, `muqy_20241031_generate_monthly_meteo.py`, and `muqy_20250926_dbz_cloudsat_differ.py`, plus the notebook `muqy_20250423_spatial_corr_anvil_insitu.ipynb`, render global climatologies, radar reflectivity distributions, correlations, and regressions.
-7. **Advanced studies** – `muqy_20241104_ridge_regression_enhanced_grid_point_test.py` performs grid-point ridge regression with cross-validation; `muqy_20250322_anvilDCS_length_calc.py` estimates contiguous anvil/deep-convection segment lengths; `muqy_20250927_reflectivity_distribution.py` compiles probability-density statistics for masked radar reflectivity.
-
-## 📁 Repository quick reference
-
-| File | Purpose |
-| --- | --- |
-| `muqy_20240101_2Bgeoprof_reader.py` | PyHDF-based reader for CloudSat R05 products (geo/time and SDS scaling/masking).
-| `muqy_20240101_plot_2Bgeoprof_test.py` | Plot utilities for map setup, track rendering, and radar–lidar cross-sections.
-| `muqy_20240102_plot_2Bcldtype_2Bcldfrac_2Cice.py` | Multi-product visualisation combining cloud type, fraction, ice microphysics, and orbit maps.
-| `muqy_20240104_filter_anvil_insitu_cirrus.py` | Core classification workflow with connected-component labelling, morphology, and diagnostics.
-| `muqy_20240611_apply_filter_cld_parallel_with_ice_modified.py` | Directory walker that processes daily batches in parallel and writes compressed NetCDF summaries.
-| `muqy_20240619_filter_high_AOD_cirrus_zone.py` | Filters cirrus occurrences using MODIS-based AOD thresholds.
-| `muqy_20240621_calc_monthly_cirrus_class_micro.py` | Aggregates processed NetCDF files into monthly fixed-grid cirrus occurrence and microphysics.
-| `muqy_20240625_calc_aux_trop_vars_from_ogdata_og.py` | Computes thermodynamic/dynamic derivatives (potential temperature, wind shear, tropopause metrics) and saves NetCDF.
-| `muqy_20240909_calc_height_weighted_cirrus_mask.py` | Converts 3-D masks into height-weighted 2-D climatologies.
-| `muqy_20240910_generate_Cirrus_inc_prof_EC_AUX_vars_mean_parallel.py` | Builds decile-conditioned cirrus profiles/incidence using ECMWF auxiliaries.
-| `muqy_20240923_analyze_cirrus_class_freq_micro.py` | Leverages helper modules for global dual-hemisphere maps and vertical profile figures.
-| `muqy_20241031_generate_monthly_meteo.py` | Produces monthly gridded meteorology matched to height-weighted masks.
-| `muqy_20241104_ridge_regression_enhanced_grid_point_test.py` | Performs grid-point ridge regression with cross-validation diagnostics.
-| `muqy_20250322_anvilDCS_length_calc.py` | Measures along-track lengths of in-situ/anvil/DCS segments and outputs 2-D masks.
-| `muqy_20250423_spatial_corr_anvil_insitu.ipynb` | Jupyter notebook exploring spatial correlations between cirrus classes.
-| `muqy_20250924_case_study_and_modis.py` | Case-study visualisation combining CloudSat, MODIS, and basemap context.
-| `muqy_20250926_dbz_cloudsat_differ.py` | Extracts 2B-GEOPROF radar reflectivity, merges with masks, and writes NetCDF.
-| `muqy_20250927_reflectivity_distribution.py` | Samples masked reflectivity to compute histograms and PDFs.
-
-> 📓 Only headline scripts are listed above. Check each script header (author, last-modified timestamp) for additional notes or one-off utilities.
-
-## 🧩 Runtime dependencies
-
-- **Python** – recommended 3.10 or newer.
-- **Core packages** – `numpy`, `pandas`, `xarray`, `matplotlib`, `cartopy`, `seaborn`, `scipy`, `joblib`, Python `multiprocessing`, `pyhdf`, `metpy`, `scikit-learn`, `contextily`, `h5netcdf`.
-- **Optional extras** – `mpl_toolkits` (bundled with matplotlib), `pyproj` (cartopy dependency), `dask` (if you expand parallelism).
-- **External data** –
-	- CloudSat R05 **2B-GEOPROF / 2B-CLDCLASS-LIDAR / 2C-ICE** granules.
-	- CloudSat **ECMWF_AUX** and **MODIS_AUX** ancillary products.
-	- MODIS or equivalent AOD NetCDF files for `muqy_20240619_filter_high_AOD_cirrus_zone.py`.
-
-> 💡 On macOS, install HDF4 via Homebrew or Conda before running `pip/conda install pyhdf`.
-
-## 🚀 Typical workflows
-
-### 1. Pre-processing & classification
-
-```bash
-# Example: iterate through directories and produce processed NetCDF files
-python muqy_20240611_apply_filter_cld_parallel_with_ice_modified.py
+```
+.
+├── src/cirrusclassify/           # Installable Python package
+│   ├── io/                       # CloudSat readers & ancillary loaders
+│   ├── processing/               # Feature engineering & batch pipelines
+│   ├── analysis/                 # Statistical and ML utilities
+│   ├── visualization/            # Plotting helpers
+│   └── utils/                    # Shared math/geo helpers
+├── configs/                      # YAML configuration templates
+├── scripts/                      # Runnable entry points for pipelines & legacy glue
+├── tests/                        # pytest-based unit tests
+├── docs/                         # Architecture notes & Sphinx-ready docs
+├── data/                         # (Optional) local cache, ignored by git
+├── notebooks/                    # Exploratory notebooks
+├── pyproject.toml                # Packaging & dependency metadata
+├── requirements.txt              # Runtime dependency pin list (pip install -r)
+├── Makefile                      # Common developer tasks (setup, lint, test)
+└── README.md                     # You are here
 ```
 
-Key parameters to adjust:
+Legacy one-off scripts remain at the repository root for the moment. They will be gradually migrated into the package modules; feel free to call them directly while transition work continues.
 
-- Configure `base_paths` at the top of the script (CLDCLASS / GEOPROF / ICE / ECMWF_AUX directories).
-- `structure_0` and `structure_1` control the horizontal/vertical extent of morphological dilation.
-- `iterations` sets how many expansion passes are applied to anvil cirrus.
+## 🚀 Quick start
 
-### 2. Mask QC and visual checks
+1. **Create an environment** (Python 3.10+ recommended) and install the package in editable mode:
 
 ```bash
-# Quickly inspect classification results for a chosen orbit
-python muqy_20240102_plot_2Bcldtype_2Bcldfrac_2Cice.py
+make setup
 ```
 
-Adjust `base_paths` and `file_idx` to select a specific granule; `time_range_custum` trims the shown segment.
+2. **Run unit tests** to verify the installation:
 
-### 3. Downstream analysis
+```bash
+make unit
+```
 
-- **AOD filtering** – `python muqy_20240619_filter_high_AOD_cirrus_zone.py`
-- **Monthly climatology / gridding** – `python muqy_20240621_calc_monthly_cirrus_class_micro.py`
-- **Thermo/dynamic diagnostics** – `python muqy_20240625_calc_aux_trop_vars_from_ogdata_og.py`
-- **Ridge regression & statistics** – `python muqy_20241104_ridge_regression_enhanced_grid_point_test.py`
+3. **Execute the classification pipeline** using the new orchestration script:
 
-Several scripts use `joblib.Parallel` or `ProcessPoolExecutor`; tune `num_workers` / `NUM_WORKERS` to match available cores and avoid I/O bottlenecks.
+```bash
+python scripts/run_pipeline.py configs/pipeline.defaults.yaml
+```
 
-## 🔗 External helper modules
+Edit the YAML file to point at your CloudSat 2B-GEOPROF granules and to configure output directories or feature settings. The default pipeline:
 
-The following modules are referenced but not bundled; obtain them from companion repositories or private code bases by the same author:
+- opens each HDF granule with `cirrusclassify.io.CloudSatReader`
+- derives location-aware features via `cirrusclassify.processing.FeatureEngineer`
+- writes per-granule Parquet tables containing mask/feature columns
 
-- `muqy_20240312_generate_cirrus_class_grid` – provides helpers such as `extract_start_date`.
-- `muqy_20240710_util_cirrus_class_freq_micro` – wraps data-loading and multi-panel plotting functions.
-- `EC_AUX_deciles_dict` – defines ECMWF auxiliary-variable decile ranges.
+4. **Inspect outputs** – the default configuration saves derived features under `./outputs`. Downstream notebooks in `notebooks/` or scripts in `scripts/` can consume these tables for climatology, regression, or visual QC.
 
-Before running, make sure these modules are on `PYTHONPATH` or copied into the repository root.
+## 🧩 Core modules
+
+- `cirrusclassify.io.cloudsat_reader.CloudSatReader`: context-manager friendly HDF4 interface that applies scaling/masking metadata and returns geolocation, time, and SDS arrays.
+- `cirrusclassify.processing.batch.BatchProcessor`: configuration-driven orchestrator that loops over CloudSat granules, triggers feature extraction, and writes results.
+- `cirrusclassify.processing.features.FeatureEngineer`: example feature pipeline producing geospatial metadata and mask summaries; extend or subclass for project-specific metrics.
+- `cirrusclassify.utils.geo`: helper functions for geographical binning (latitudinal bands, etc.).
+
+Additional subpackages (`analysis`, `visualization`) will be populated as legacy scripts migrate into reusable modules.
+
+## ⚙️ Configuration
+
+YAML templates in `configs/` define runtime behaviour. The bundled `pipeline.defaults.yaml` contains:
+
+```yaml
+project:
+  name: cirrusclassify
+data:
+  cloudsat_dir: "/data/cloudsat/geoprof"
+  primary_sds: "Cloud_mask"
+features:
+  primary_variable: "Cloud_mask"
+output:
+  directory: "./outputs"
+logging:
+  level: INFO
+```
+
+Override any path or parameter (e.g., target SDS name, output location) by creating a copy of the file and passing it to the CLI. Nested dictionaries map directly to the configuration consumed by `BatchProcessor` and downstream utilities.
+
+## 🧪 Testing & quality
+
+- `pytest` drives unit tests under `tests/`.
+- `ruff` and `black` enforce style; run `make lint` or `make format`.
+- Coverage configuration is set up in `pyproject.toml` (`pytest --cov`).
+
+These commands are safe to execute locally and in CI pipelines.
+
+## 🗺️ Legacy scripts & notebooks
+
+The historical analysis scripts (prefixed `muqy_...`) and notebooks document the full range of research experiments—plotting, climatology aggregation, machine learning, and case studies. They continue to function with the new package and serve as references for upcoming refactors. When porting functionality, prefer creating reusable modules under `src/cirrusclassify/` and thin wrappers in `scripts/`.
+
+## 📚 Documentation
+
+- `docs/architecture.md` captures high-level design notes and the migration plan.
+- Sphinx configuration is pre-wired; run `make docs` to build HTML documentation once docstrings and `.rst`/Markdown sources are ready.
+
+## � Dependencies
+
+Key runtime libraries (managed via `pyproject.toml`): `numpy`, `pandas`, `xarray`, `matplotlib`, `cartopy`, `seaborn`, `scipy`, `joblib`, `pyhdf`, `metpy`, `scikit-learn`, `contextily`, `h5netcdf`, `pyarrow`. Install HDF4 support (`brew install hdf4` or Conda equivalent) before installing `pyhdf` on macOS.
+
+Optional developer extras (`pip install .[develop]`:
+
+- Tooling: `black`, `ruff`, `pytest`, `pytest-cov`, `pre-commit`
+- Docs: `sphinx`, `myst-parser`
 
 ## 📜 Licence & citation
 
-- The repository follows the terms in `LICENSE`. When citing in publications, please reference “Qingyu Mu, CirrusClassify-MeteAnalysis, 2024–2025”.
-- For questions about scripts or algorithms, consult the contact details in each file header.
+Distributed under the terms of the project `LICENSE` (MIT). When referencing this work, please cite: *Qingyu Mu, CirrusClassify-MeteAnalysis, 2024–2025.*
+
+Questions, feature requests, or bug reports are welcome via repository issues or contact details in file headers.

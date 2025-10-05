@@ -1,0 +1,17 @@
+# Default configuration for cirrus classification pipeline
+
+project:
+  name: cirrusclassify
+
+data:
+  cloudsat_dir: "/data/cloudsat/geoprof"
+  primary_sds: "Cloud_mask"
+
+features:
+  primary_variable: "Cloud_mask"
+
+output:
+  directory: "./outputs"
+
+logging:
+  level: INFO
